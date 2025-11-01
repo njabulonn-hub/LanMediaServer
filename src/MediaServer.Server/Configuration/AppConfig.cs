@@ -6,21 +6,7 @@ public sealed class AppConfig
 {
     public string DataRoot { get; set; } = AppPaths.GetDefaultDataRoot();
 
-    public List<LibraryConfig> Libraries { get; set; } = new()
-    {
-        new LibraryConfig
-        {
-            Name = "Movies",
-            Path = OperatingSystem.IsWindows() ? @"D:\\Media\\Movies" : "/srv/media/movies",
-            Kind = "movies"
-        },
-        new LibraryConfig
-        {
-            Name = "Series",
-            Path = OperatingSystem.IsWindows() ? @"D:\\Media\\Series" : "/srv/media/series",
-            Kind = "series"
-        }
-    };
+    public List<LibraryConfig> Libraries { get; set; } = new();
 
     public string FfmpegPath { get; set; } = OperatingSystem.IsWindows()
         ? @"C:\\MediaServer\\bin\\ffmpeg.exe"
