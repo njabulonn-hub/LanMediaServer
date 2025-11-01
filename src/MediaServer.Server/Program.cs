@@ -64,9 +64,13 @@ app.Logger.LogInformation("ContentRoot: {Root}, WebRoot: {WebRoot}", app.Environ
 
 var webRootPath = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var hasWebRoot = Directory.Exists(webRootPath);
-IFileProvider webRootProvider = hasWebRoot
-    ? new PhysicalFileProvider(webRootPath)
-    : new NullFileProvider();
+IFileProvider webRootProvider = app.Environment.WebRootFileProvider switch
+{
+    null or NullFileProvider => hasWebRoot
+        ? new PhysicalFileProvider(webRootPath)
+        : new NullFileProvider(),
+    var existing => existing
+};
 
 if (hasWebRoot && (app.Environment.WebRootFileProvider is null or NullFileProvider))
 {
