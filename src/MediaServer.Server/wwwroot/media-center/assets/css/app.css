@@ -206,6 +206,15 @@ body {
   color: var(--text-muted);
 }
 
+.loading-state.error,
+.card-meta.error {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
 @media (max-width: 900px) {
   :root {
     --nav-width: 100%;

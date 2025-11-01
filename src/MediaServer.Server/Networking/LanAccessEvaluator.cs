@@ -1,3 +1,4 @@
+using System.Net;
 using MediaServer.Server.Configuration;
 using Microsoft.Extensions.Logging;
 

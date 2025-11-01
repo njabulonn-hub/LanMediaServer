@@ -49,17 +49,33 @@ var discoveryService = app.Services.GetRequiredService<DiscoveryService>();
 
 discoveryService.Configure(app.Configuration["ServerName"] ?? "Local Media Server", port);
 
+app.Logger.LogInformation("ContentRoot: {Root}, WebRoot: {WebRoot}", app.Environment.ContentRootPath, app.Environment.WebRootPath);
+
+var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var mediaCenterPath = Path.Combine(wwwrootPath, "media-center");
+app.Logger.LogInformation("Checking paths - wwwroot exists: {WwwRoot}, media-center exists: {MediaCenter}", 
+    Directory.Exists(wwwrootPath), Directory.Exists(mediaCenterPath));
+
 app.UseMiddleware<LanAccessMiddleware>();
 
+// Serve static files from wwwroot (includes media-center folder)
 app.UseStaticFiles();
+
+// Explicitly serve media-center files from wwwroot/media-center
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/media-center",
+    FileProvider = new PhysicalFileProvider(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "media-center"))
+});
+
+// Serve streams from configured path
 app.UseStaticFiles(new StaticFileOptions
 {
     RequestPath = "/streams",
-    FileProvider = new PhysicalFileProvider(appPaths.StreamsPath)
+    FileProvider = new PhysicalFileProvider(appPaths.StreamRoot)
 });
 
-app.MapFallbackToFile("/media-center/{*path}", "media-center/index.html");
-
+// Map API endpoints first
 app.MapGet("/api/status", (MediaRepository repository, ScanService scanService, ConfigService cfg) =>
 {
     return Results.Ok(new
@@ -160,6 +176,30 @@ app.MapGet("/api/art/{name}", async (string name, MediaRepository repository, Ap
 
     var contentType = MimeTypes.GetMimeType(path);
     return Results.File(path, contentType);
+});
+
+// Fallback for SPA routing - only serve index.html for routes that don't match files
+// This should only match after static files and API routes have been checked
+app.MapFallback("/media-center/{*path}", async context =>
+{
+    var requestPath = context.Request.Path.Value ?? "";
+    // Extract the path after /media-center/
+    var relativePath = requestPath.StartsWith("/media-center/") 
+        ? requestPath.Substring("/media-center/".Length)
+        : requestPath;
+    
+    // Only serve index.html if the relative path doesn't have a file extension (SPA route)
+    if (string.IsNullOrEmpty(relativePath) || !Path.HasExtension(relativePath))
+    {
+        var fileProvider = new PhysicalFileProvider(Path.Combine(app.Environment.ContentRootPath, "wwwroot"));
+        var fileInfo = fileProvider.GetFileInfo("media-center/index.html");
+        if (fileInfo.Exists && !string.IsNullOrEmpty(fileInfo.PhysicalPath))
+        {
+            await Results.File(fileInfo.PhysicalPath, "text/html").ExecuteAsync(context);
+            return;
+        }
+    }
+    await Results.NotFound().ExecuteAsync(context);
 });
 
 await app.RunAsync();

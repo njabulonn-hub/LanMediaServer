@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Dapper;
 using MediaServer.Server.Configuration;
+using MediaServer.Server.Devices;
 using MediaServer.Server.Scanning;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;

@@ -62,7 +62,7 @@ public sealed class DiscoveryBackgroundService : BackgroundService
                 $"CACHE-CONTROL: max-age=300\r\n" +
                 $"SERVER: MediaServer/1.0 UPnP/1.0\r\n\r\n";
 
-            await using var client = new UdpClient(AddressFamily.InterNetwork);
+            using var client = new UdpClient(AddressFamily.InterNetwork);
             client.MulticastLoopback = false;
             var bytes = Encoding.UTF8.GetBytes(payload);
             await client.SendAsync(bytes, bytes.Length, SsdpEndpoint);
@@ -74,7 +74,7 @@ public sealed class DiscoveryBackgroundService : BackgroundService
         foreach (var address in settings.Addresses)
         {
             var message = BuildMdnsMessage(settings, address);
-            await using var client = new UdpClient(AddressFamily.InterNetwork);
+            using var client = new UdpClient(AddressFamily.InterNetwork);
             client.MulticastLoopback = false;
             client.JoinMulticastGroup(MdnsEndpoint.Address);
             await client.SendAsync(message, message.Length, MdnsEndpoint);

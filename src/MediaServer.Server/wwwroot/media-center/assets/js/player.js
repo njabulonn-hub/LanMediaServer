@@ -31,13 +31,28 @@ function restoreProgress(element, playback) {
   seek();
 }
 
+function extractNumericId(path) {
+  // Extract numeric ID from API path like "/api/item/123/file" or from itemId like "item_123"
+  if (typeof path === 'string' && path.includes('/api/item/')) {
+    const match = path.match(/\/api\/item\/(\d+)\//);
+    return match ? match[1] : null;
+  }
+  if (typeof path === 'string' && path.startsWith('item_')) {
+    return path.replace('item_', '');
+  }
+  return path;
+}
+
 export function playVideo(itemId, path, title = '') {
   const el = video();
   if (!el) return;
   currentVideoId = itemId;
-  el.src = path;
+  
+  // Ensure path is a valid URL (API endpoint or relative path)
+  el.src = path.startsWith('/') ? path : `/${path}`;
   el.play();
 
+  const numericId = extractNumericId(path) || itemId;
   const onTimeUpdate = () => {
     saveProgress('video', itemId, el.currentTime, el.duration || 0, title);
   };
@@ -55,9 +70,12 @@ export function playAudio(itemId, path, title = '') {
   const el = audio();
   if (!el) return;
   currentAudioId = itemId;
-  el.src = path;
+  
+  // Ensure path is a valid URL (API endpoint or relative path)
+  el.src = path.startsWith('/') ? path : `/${path}`;
   el.play();
 
+  const numericId = extractNumericId(path) || itemId;
   const onTimeUpdate = () => {
     saveProgress('audio', itemId, el.currentTime, el.duration || 0, title);
   };
