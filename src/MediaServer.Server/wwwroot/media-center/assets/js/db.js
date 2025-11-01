@@ -56,10 +56,46 @@ async function withStore(storeName, mode, callback) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, mode);
     const store = tx.objectStore(storeName);
-    const result = callback(store, tx);
-    tx.oncomplete = () => resolve(result);
-    tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error);
+
+    let settled = false;
+    const resolveOnce = value => {
+      if (!settled) {
+        settled = true;
+        resolve(value);
+      }
+    };
+    const rejectOnce = error => {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    };
+
+    let result;
+    try {
+      result = callback(store, tx);
+    } catch (error) {
+      rejectOnce(error);
+      tx.abort();
+      return;
+    }
+
+    const isRequest =
+      result &&
+      typeof result === 'object' &&
+      typeof result.onsuccess === 'function' &&
+      typeof result.onerror === 'function' &&
+      'result' in result;
+
+    if (isRequest) {
+      result.onsuccess = () => resolveOnce(result.result);
+      result.onerror = () => rejectOnce(result.error);
+    } else {
+      tx.oncomplete = () => resolveOnce(result);
+    }
+
+    tx.onerror = () => rejectOnce(tx.error);
+    tx.onabort = () => rejectOnce(tx.error ?? new Error('Transaction aborted'));
   });
 }
 
