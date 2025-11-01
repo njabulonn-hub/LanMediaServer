@@ -77,34 +77,52 @@ if (hasWebRoot && (app.Environment.WebRootFileProvider is null or NullFileProvid
     app.Environment.WebRootFileProvider = webRootProvider;
 }
 
-var mediaCenterRoots = new List<IFileProvider>();
+var mediaCenterDirectories = new List<string>();
 
-var webRootMediaCenterPath = Path.Combine(webRootPath, "media-center");
-if (Directory.Exists(webRootMediaCenterPath))
+void AddMediaCenterDirectory(string candidate)
 {
-    mediaCenterRoots.Add(new PhysicalFileProvider(webRootMediaCenterPath));
+    if (string.IsNullOrWhiteSpace(candidate))
+    {
+        return;
+    }
+
+    if (!Directory.Exists(candidate))
+    {
+        return;
+    }
+
+    var fullPath = Path.GetFullPath(candidate);
+    if (mediaCenterDirectories.Contains(fullPath, StringComparer.OrdinalIgnoreCase))
+    {
+        return;
+    }
+
+    mediaCenterDirectories.Add(fullPath);
 }
 
-var contentRootMediaCenterPath = Path.Combine(app.Environment.ContentRootPath, "media-center");
-if (Directory.Exists(contentRootMediaCenterPath) &&
-    !Path.GetFullPath(contentRootMediaCenterPath).Equals(Path.GetFullPath(webRootMediaCenterPath), StringComparison.OrdinalIgnoreCase))
+AddMediaCenterDirectory(Path.Combine(webRootPath, "media-center"));
+AddMediaCenterDirectory(Path.Combine(app.Environment.ContentRootPath, "media-center"));
+
+var parent = Directory.GetParent(app.Environment.ContentRootPath);
+while (parent is not null)
 {
-    mediaCenterRoots.Add(new PhysicalFileProvider(contentRootMediaCenterPath));
+    AddMediaCenterDirectory(Path.Combine(parent.FullName, "media-center"));
+    parent = parent.Parent;
 }
 
-var mediaCenterProvider = mediaCenterRoots.Count switch
+var mediaCenterProviders = mediaCenterDirectories
+    .Select(path => (IFileProvider)new PhysicalFileProvider(path))
+    .ToArray();
+
+var mediaCenterProvider = mediaCenterProviders.Length switch
 {
     0 => null,
-    1 => mediaCenterRoots[0],
-    _ => new CompositeFileProvider(mediaCenterRoots.ToArray())
+    1 => mediaCenterProviders[0],
+    _ => new CompositeFileProvider(mediaCenterProviders)
 };
 
 app.Logger.LogInformation("Checking paths - wwwroot exists: {WwwRoot}, media-center roots: {MediaCenterRoots}",
-    hasWebRoot, mediaCenterRoots.Select(provider => provider switch
-    {
-        PhysicalFileProvider physical => physical.Root,
-        _ => provider.ToString() ?? "<unknown>"
-    }).ToArray());
+    hasWebRoot, mediaCenterDirectories.ToArray());
 
 app.UseMiddleware<LanAccessMiddleware>();
 
