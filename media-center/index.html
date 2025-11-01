@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="assets/css/app.css" />
+    <title>Local Media Center</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <h1>Local Media Center</h1>
+        <button id="nav-toggle" class="nav-toggle" aria-label="Toggle navigation">☰</button>
+      </header>
+      <nav class="app-nav" id="app-nav" aria-label="Primary">
+        <ul>
+          <li><a href="#home" data-route="home" class="nav-link">Home</a></li>
+          <li><a href="#movies" data-route="movies" class="nav-link">Movies</a></li>
+          <li><a href="#series" data-route="series" class="nav-link">Series</a></li>
+          <li><a href="#music" data-route="music" class="nav-link">Music</a></li>
+          <li><a href="#admin" data-route="admin" class="nav-link">Admin</a></li>
+        </ul>
+      </nav>
+      <main id="content" class="app-content" role="main" aria-live="polite">
+        <section class="loading-state" id="loading-state">Loading library…</section>
+      </main>
+      <aside class="players" aria-label="Media players">
+        <video id="video-player" controls preload="metadata"></video>
+        <audio id="audio-player" controls preload="metadata"></audio>
+      </aside>
+    </div>
+    <script type="module" src="assets/js/app.js"></script>
+  </body>
+</html>
