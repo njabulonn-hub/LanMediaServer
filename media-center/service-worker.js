@@ -1,4 +1,4 @@
-const CACHE_NAME = 'media-center-shell-v1';
+const CACHE_NAME = 'media-center-shell-v2';
 const SHELL_ASSETS = [
   '/media-center/',
   '/media-center/index.html',
