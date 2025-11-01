@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Linq;
 using MediaServer.Server.Configuration;
@@ -79,6 +81,30 @@ if (hasWebRoot && (app.Environment.WebRootFileProvider is null or NullFileProvid
 
 var mediaCenterDirectories = new List<string>();
 
+string? FindSolutionRoot(string startPath)
+{
+    if (string.IsNullOrWhiteSpace(startPath))
+    {
+        return null;
+    }
+
+    var current = new DirectoryInfo(startPath);
+    while (current is not null)
+    {
+        var hasSolutionFile = File.Exists(Path.Combine(current.FullName, "MediaServer.sln"));
+        var hasGitDirectory = Directory.Exists(Path.Combine(current.FullName, ".git"));
+
+        if (hasSolutionFile || hasGitDirectory)
+        {
+            return current.FullName;
+        }
+
+        current = current.Parent;
+    }
+
+    return null;
+}
+
 void AddMediaCenterDirectory(string candidate)
 {
     if (string.IsNullOrWhiteSpace(candidate))
@@ -103,10 +129,22 @@ void AddMediaCenterDirectory(string candidate)
 AddMediaCenterDirectory(Path.Combine(webRootPath, "media-center"));
 AddMediaCenterDirectory(Path.Combine(app.Environment.ContentRootPath, "media-center"));
 
+var solutionRoot = FindSolutionRoot(app.Environment.ContentRootPath);
 var parent = Directory.GetParent(app.Environment.ContentRootPath);
 while (parent is not null)
 {
     AddMediaCenterDirectory(Path.Combine(parent.FullName, "media-center"));
+
+    if (solutionRoot is not null && string.Equals(parent.FullName, solutionRoot, StringComparison.OrdinalIgnoreCase))
+    {
+        break;
+    }
+
+    if (solutionRoot is null)
+    {
+        break;
+    }
+
     parent = parent.Parent;
 }
 
