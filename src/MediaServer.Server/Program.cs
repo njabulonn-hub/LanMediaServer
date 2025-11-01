@@ -14,6 +14,7 @@ using MediaServer.Server.Devices;
 using MediaServer.Server.Utilities;
 using MediaServer.Server.Discovery;
 using MediaServer.Server.Hosting;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -162,6 +163,8 @@ var mediaCenterProvider = mediaCenterProviders.Length switch
 app.Logger.LogInformation("Checking paths - wwwroot exists: {WwwRoot}, media-center roots: {MediaCenterRoots}",
     hasWebRoot, mediaCenterDirectories.ToArray());
 
+var mediaCenterContentTypeProvider = new FileExtensionContentTypeProvider();
+
 app.UseMiddleware<LanAccessMiddleware>();
 
 // Serve static files from wwwroot (includes media-center folder)
@@ -296,12 +299,38 @@ app.MapFallback("/media-center/{*path}", async context =>
 {
     var requestPath = context.Request.Path.Value ?? "";
     // Extract the path after /media-center/
-    var relativePath = requestPath.StartsWith("/media-center/") 
+    var relativePath = requestPath.StartsWith("/media-center/")
         ? requestPath.Substring("/media-center/".Length)
         : requestPath;
-    
-    // Only serve index.html if the relative path doesn't have a file extension (SPA route)
-    if (string.IsNullOrEmpty(relativePath) || !Path.HasExtension(relativePath))
+
+    if (!string.IsNullOrEmpty(relativePath) && Path.HasExtension(relativePath))
+    {
+        var assetPath = relativePath.TrimStart('/');
+        var providersToSearch = mediaCenterProvider is not null
+            ? new[] { mediaCenterProvider, webRootProvider }
+            : new[] { webRootProvider };
+
+        foreach (var provider in providersToSearch)
+        {
+            if (provider is null or NullFileProvider)
+            {
+                continue;
+            }
+
+            var assetInfo = provider.GetFileInfo(assetPath);
+            if (assetInfo.Exists && !string.IsNullOrEmpty(assetInfo.PhysicalPath))
+            {
+                if (!mediaCenterContentTypeProvider.TryGetContentType(assetPath, out var contentType))
+                {
+                    contentType = "application/octet-stream";
+                }
+
+                await Results.File(assetInfo.PhysicalPath, contentType).ExecuteAsync(context);
+                return;
+            }
+        }
+    }
+    else
     {
         IFileProvider fallbackProvider;
         string fallbackPath;
@@ -317,13 +346,17 @@ app.MapFallback("/media-center/{*path}", async context =>
             fallbackPath = "media-center/index.html";
         }
 
-        var fileInfo = fallbackProvider.GetFileInfo(fallbackPath);
-        if (fileInfo.Exists && !string.IsNullOrEmpty(fileInfo.PhysicalPath))
+        if (fallbackProvider is not null and not NullFileProvider)
         {
-            await Results.File(fileInfo.PhysicalPath, "text/html").ExecuteAsync(context);
-            return;
+            var fileInfo = fallbackProvider.GetFileInfo(fallbackPath);
+            if (fileInfo.Exists && !string.IsNullOrEmpty(fileInfo.PhysicalPath))
+            {
+                await Results.File(fileInfo.PhysicalPath, "text/html").ExecuteAsync(context);
+                return;
+            }
         }
     }
+
     await Results.NotFound().ExecuteAsync(context);
 });
 
