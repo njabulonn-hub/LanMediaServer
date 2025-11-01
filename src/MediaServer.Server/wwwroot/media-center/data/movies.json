@@ -1,0 +1,34 @@
+[
+  {
+    "id": "mov_0001",
+    "title": "Interstellar",
+    "year": 2014,
+    "overview": "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
+    "runtime": 169,
+    "poster": "/media/posters/interstellar.jpg",
+    "files": [
+      {
+        "path": "/media/movies/Interstellar (2014).mp4",
+        "quality": "1080p",
+        "size": 7340032000
+      }
+    ],
+    "added_at": 1704067200000
+  },
+  {
+    "id": "mov_0002",
+    "title": "Arrival",
+    "year": 2016,
+    "overview": "A linguist works with the military to communicate with alien lifeforms after twelve mysterious spacecraft appear around the world.",
+    "runtime": 116,
+    "poster": "/media/posters/arrival.jpg",
+    "files": [
+      {
+        "path": "/media/movies/Arrival (2016).mp4",
+        "quality": "4K",
+        "size": 5368709120
+      }
+    ],
+    "added_at": 1706659200000
+  }
+]

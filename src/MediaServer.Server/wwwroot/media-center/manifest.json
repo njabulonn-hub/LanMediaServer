@@ -1,0 +1,9 @@
+{
+  "name": "Local Media Center",
+  "short_name": "MediaCenter",
+  "start_url": "/media-center/index.html",
+  "display": "standalone",
+  "background_color": "#10141a",
+  "theme_color": "#4dabf7",
+  "icons": []
+}
