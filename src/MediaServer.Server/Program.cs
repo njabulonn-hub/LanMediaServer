@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Net;
+using System.Linq;
 using MediaServer.Server.Configuration;
 using MediaServer.Server.Data;
 using MediaServer.Server.Metadata;
@@ -13,6 +15,15 @@ using MediaServer.Server.Hosting;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
+if (string.IsNullOrWhiteSpace(builder.Environment.WebRootPath))
+{
+    var inferredWebRoot = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+    if (Directory.Exists(inferredWebRoot))
+    {
+        builder.Environment.WebRootPath = inferredWebRoot;
+        builder.Environment.WebRootFileProvider = new PhysicalFileProvider(inferredWebRoot);
+    }
+}
 var port = builder.Configuration.GetValue("MediaServerPort", builder.Configuration.GetValue("PORT", 8090));
 
 builder.WebHost.ConfigureKestrel(options =>
@@ -51,22 +62,85 @@ discoveryService.Configure(app.Configuration["ServerName"] ?? "Local Media Serve
 
 app.Logger.LogInformation("ContentRoot: {Root}, WebRoot: {WebRoot}", app.Environment.ContentRootPath, app.Environment.WebRootPath);
 
-var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-var mediaCenterPath = Path.Combine(wwwrootPath, "media-center");
-app.Logger.LogInformation("Checking paths - wwwroot exists: {WwwRoot}, media-center exists: {MediaCenter}", 
-    Directory.Exists(wwwrootPath), Directory.Exists(mediaCenterPath));
+var webRootPath = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var hasWebRoot = Directory.Exists(webRootPath);
+IFileProvider webRootProvider = app.Environment.WebRootFileProvider switch
+{
+    null or NullFileProvider => hasWebRoot
+        ? new PhysicalFileProvider(webRootPath)
+        : new NullFileProvider(),
+    var existing => existing
+};
+
+if (hasWebRoot && (app.Environment.WebRootFileProvider is null or NullFileProvider))
+{
+    app.Environment.WebRootFileProvider = webRootProvider;
+}
+
+var mediaCenterDirectories = new List<string>();
+
+void AddMediaCenterDirectory(string candidate)
+{
+    if (string.IsNullOrWhiteSpace(candidate))
+    {
+        return;
+    }
+
+    if (!Directory.Exists(candidate))
+    {
+        return;
+    }
+
+    var fullPath = Path.GetFullPath(candidate);
+    if (mediaCenterDirectories.Contains(fullPath, StringComparer.OrdinalIgnoreCase))
+    {
+        return;
+    }
+
+    mediaCenterDirectories.Add(fullPath);
+}
+
+AddMediaCenterDirectory(Path.Combine(webRootPath, "media-center"));
+AddMediaCenterDirectory(Path.Combine(app.Environment.ContentRootPath, "media-center"));
+
+var parent = Directory.GetParent(app.Environment.ContentRootPath);
+while (parent is not null)
+{
+    AddMediaCenterDirectory(Path.Combine(parent.FullName, "media-center"));
+    parent = parent.Parent;
+}
+
+var mediaCenterProviders = mediaCenterDirectories
+    .Select(path => (IFileProvider)new PhysicalFileProvider(path))
+    .ToArray();
+
+var mediaCenterProvider = mediaCenterProviders.Length switch
+{
+    0 => null,
+    1 => mediaCenterProviders[0],
+    _ => new CompositeFileProvider(mediaCenterProviders)
+};
+
+app.Logger.LogInformation("Checking paths - wwwroot exists: {WwwRoot}, media-center roots: {MediaCenterRoots}",
+    hasWebRoot, mediaCenterDirectories.ToArray());
 
 app.UseMiddleware<LanAccessMiddleware>();
 
 // Serve static files from wwwroot (includes media-center folder)
-app.UseStaticFiles();
-
-// Explicitly serve media-center files from wwwroot/media-center
 app.UseStaticFiles(new StaticFileOptions
 {
-    RequestPath = "/media-center",
-    FileProvider = new PhysicalFileProvider(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "media-center"))
+    FileProvider = webRootProvider
 });
+
+// Explicitly serve media-center files from wwwroot/media-center
+if (mediaCenterProvider is not null)
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        RequestPath = "/media-center",
+        FileProvider = mediaCenterProvider
+    });
+}
 
 // Serve streams from configured path
 app.UseStaticFiles(new StaticFileOptions
@@ -191,8 +265,21 @@ app.MapFallback("/media-center/{*path}", async context =>
     // Only serve index.html if the relative path doesn't have a file extension (SPA route)
     if (string.IsNullOrEmpty(relativePath) || !Path.HasExtension(relativePath))
     {
-        var fileProvider = new PhysicalFileProvider(Path.Combine(app.Environment.ContentRootPath, "wwwroot"));
-        var fileInfo = fileProvider.GetFileInfo("media-center/index.html");
+        IFileProvider fallbackProvider;
+        string fallbackPath;
+
+        if (mediaCenterProvider is not null)
+        {
+            fallbackProvider = mediaCenterProvider;
+            fallbackPath = "index.html";
+        }
+        else
+        {
+            fallbackProvider = webRootProvider;
+            fallbackPath = "media-center/index.html";
+        }
+
+        var fileInfo = fallbackProvider.GetFileInfo(fallbackPath);
         if (fileInfo.Exists && !string.IsNullOrEmpty(fileInfo.PhysicalPath))
         {
             await Results.File(fileInfo.PhysicalPath, "text/html").ExecuteAsync(context);
