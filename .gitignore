@@ -1,0 +1,11 @@
+# Build outputs
+bin/
+obj/
+build/publish/
+
+# OS clutter
+.DS_Store
+Thumbs.db
+
+# IDE
+.vs/

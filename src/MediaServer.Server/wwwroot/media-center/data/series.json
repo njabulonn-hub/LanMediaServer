@@ -1,0 +1,52 @@
+[
+  {
+    "id": "ser_0001",
+    "title": "Breaking Bad",
+    "overview": "A high school chemistry teacher turned methamphetamine producer navigates the dangers of the criminal underworld.",
+    "poster": "/media/posters/breakingbad.jpg",
+    "seasons": [
+      {
+        "season_number": 1,
+        "episodes": [
+          {
+            "id": "ep_bb_s01e01",
+            "episode_number": 1,
+            "title": "Pilot",
+            "runtime": 58,
+            "file": "/media/series/Breaking Bad/S01E01 - Pilot.mkv",
+            "overview": "Walter White begins to embrace his new role in the drug trade."
+          },
+          {
+            "id": "ep_bb_s01e02",
+            "episode_number": 2,
+            "title": "Cat's in the Bag...",
+            "runtime": 48,
+            "file": "/media/series/Breaking Bad/S01E02 - Cat's in the Bag....mkv",
+            "overview": "Walt and Jesse struggle to dispose of the aftermath of their first cook."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ser_0002",
+    "title": "The Expanse",
+    "overview": "A detective, a rogue ship's crew, and Earth government officials unravel a vast conspiracy that threatens humanity.",
+    "poster": "/media/posters/theexpanse.jpg",
+    "seasons": [
+      {
+        "season_number": 1,
+        "episodes": [
+          {
+            "id": "ep_ex_s01e01",
+            "episode_number": 1,
+            "title": "Dulcinea",
+            "runtime": 44,
+            "file": "/media/series/The Expanse/S01E01 - Dulcinea.mkv",
+            "overview": "An ice hauler crew discovers a hidden distress signal."
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "trk_001",
+    "artist": "Daft Punk",
+    "album": "Random Access Memories",
+    "title": "Give Life Back to Music",
+    "duration": 272,
+    "file": "/media/music/Daft Punk/Random Access Memories/01 - Give Life Back to Music.flac",
+    "track": 1
+  },
+  {
+    "id": "trk_002",
+    "artist": "Hans Zimmer",
+    "album": "Interstellar (Original Motion Picture Soundtrack)",
+    "title": "Cornfield Chase",
+    "duration": 122,
+    "file": "/media/music/Hans Zimmer/Interstellar OST/01 - Cornfield Chase.flac",
+    "track": 1
+  }
+]
